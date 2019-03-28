@@ -62,6 +62,7 @@ class DecisionNode:
         self.feature = feature # column index of criteria being tested
         self.value = value # value necessary to get a true result
         self.children = []
+        self.parent = None
         self.summary = None
 
     def add_child(self, node):
@@ -94,29 +95,24 @@ class DecisionNode:
         # the new children to the current node.
         d1, d2 = split_by_threshold(data, self.feature, self.value)
 
-        prune = False
         if chi_value in chi_table:
-            print("chi_value in chi_table.")
-            res = self.calc_chi(d1, d2)
-            com = chi_table[chi_value]
-            print("calculated chi: ", res)
-            prune = res < com
-
-        if prune:
-            print('Should prune.')
-            # Prediction power is not strong enough for splitting
-            # according to the attribute and is more towards
-            # random distribution.
-            return
+            if self.calc_chi(d1, d2) < chi_table[chi_value]:
+                # Prediction power is not strong enough for splitting
+                # according to the attribute and is more towards
+                # random distribution.
+                return
 
         left_child = DecisionNode(-1, -1)
         right_child = DecisionNode(-1, -1)
+        left_child.parent = self
+        right_child.parent = self
+
         self.add_child(left_child)
         self.add_child(right_child)
 
         # Learn upon new dispresion
-        left_child.learn(d1, impurity)
-        right_child.learn(d2, impurity)
+        left_child.learn(d1, impurity, chi_value)
+        right_child.learn(d2, impurity, chi_value)
 
     def predict(self, instance):
         if len(self.children) < 1:
@@ -145,19 +141,14 @@ class DecisionNode:
         py0 = labels[0] / total
         py1 = labels[1] / total
 
-        pf0 = (d0[:, -1] == 0).sum()
-        nf0 = (d0[:, -1] == 1).sum()
-        e00 = len(d0) * py0
-        e01 = len(d0) * py1
+        pf = np.array([(d0[:, -1] == 0).sum(), (d1[:, -1] == 0).sum()])
+        nf = np.array([(d0[:, -1] == 1).sum(), (d1[:, -1] == 1).sum()])
+        Df = pf + nf
 
-        pf1 = (d1[:, -1] == 0).sum()
-        nf1 = (d1[:, -1] == 1).sum()
-        e10 = len(d1) * py0
-        e11 = len(d1) * py1
+        E0 = Df * py0
+        E1 = Df * py1
 
-        result = (np.square(pf0 - e00) / e00) + (np.square(nf0 - e01) / e01)
-        result +=(np.square(pf1 - e10) / e10) + (np.square(nf1 - e11) / e11)
-        return result
+        return ((np.square(pf - E0) / E0) +  (np.square(nf - E1) / E1)).sum()
 
     def __str__(self):
         return "Feature: {0}, value: {1}, # of children: {2}".format(
@@ -165,7 +156,7 @@ class DecisionNode:
         )
 
 
-def build_tree(data, impurity, chi_value):
+def build_tree(data, impurity, chi_value=1):
     """
     Build a tree using the given impurity measure and training dataset.
     You are required to fully grow the tree until all leaves are pure.
@@ -308,3 +299,17 @@ def split_by_threshold(data, attr_idx, threshold):
             d2.append(d)
 
     return np.array(d1), np.array(d2)
+
+def post_pruning(root, parent, dataset, accuracy):
+    """
+    Preform post pruning on given decision node.
+    Calculates accuracy of the tree assuming no split occurred on the
+    parent of that leaf and find the best such parent.
+    """
+    if len(node.children) == 0:
+        # This node is a leaf.
+        node.parent.children = []
+        accuracy.append(calc_accuracy(root, dataset))
+
+    for child in node.children:
+        post_pruning(root, child, dataset, accuarcy)
