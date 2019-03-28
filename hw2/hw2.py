@@ -115,8 +115,13 @@ class DecisionNode:
         right_child.learn(d2, impurity, chi_value)
 
     def predict(self, instance):
-        if len(self.children) < 1:
-            #this is a leaf node, we need to decide a prediction
+        """
+        Predict a given instance using the itself as
+        the root of the decision tree.
+        """
+        if self.is_leaf():
+            # This is a leaf node, we're done. Use most common
+            # target value to predict our instance.
             labels = self.summary[0]
             return max(labels.keys(), key=lambda k: labels[k])
 
@@ -129,6 +134,12 @@ class DecisionNode:
         return child.predict(instance)
 
     def calc_chi(self, d0, d1):
+        """
+        Calculates the Chi Square statistic by given dispersion of
+        dataset0 and dataset1, in order to understand if our distribution
+        is 'random' or alternatively has predictive power.
+        Calculated using vectors.
+        """
         labels = self.summary[0]
         total = self.summary[1]
 
@@ -150,9 +161,15 @@ class DecisionNode:
 
         return ((np.square(pf - E0) / E0) +  (np.square(nf - E1) / E1)).sum()
 
+    def is_leaf(self):
+        """
+        Returns true if node is a leaf.
+        """
+        return len(self.children) == 0
+
     def __str__(self):
-        return "Feature: {0}, value: {1}, # of children: {2}".format(
-            self.feature, self.value, len(self.children)
+        return "Feature: {0}, value: {1}, dispersion: {2}, is leaf: ".format(
+            self.feature, self.value, self.summary[0], self.is_leaf()
         )
 
 
@@ -214,19 +231,21 @@ def print_tree(node):
     '''
     prints the tree according to the example in the notebook
 
-	Input:
-	- node: a node in the decision tree
+    Input:
+    - node: a node in the decision tree
 
-	This function has no return value
-	'''
+    This function has no return value
+    '''
+    print_tree_rec(node, '')
 
-    ###########################################################################
-    # TODO: Implement the function.                                           #
-    ###########################################################################
-    pass
-    ###########################################################################
-    #                             END OF YOUR CODE                            #
-    ###########################################################################
+def print_tree_rec(node, indent):
+    if node.is_leaf():
+        print('{0}leaf: [{1}]'.format(indent, node.summary[0]))
+        return # We're done
+
+    print('{0}[X{1} <= {2}],'.format(indent, node.feature, node.value))
+    print_tree_rec(node.children[0], indent + '  ')
+    print_tree_rec(node.children[1], indent + '  ')
 
 def count_labels(data):
     """
@@ -300,16 +319,28 @@ def split_by_threshold(data, attr_idx, threshold):
 
     return np.array(d1), np.array(d2)
 
-def post_pruning(root, parent, dataset, accuracy):
+def post_pruning(root, node, dataset, accuracy, sizes):
     """
     Preform post pruning on given decision node.
     Calculates accuracy of the tree assuming no split occurred on the
     parent of that leaf and find the best such parent.
     """
-    if len(node.children) == 0:
+    if node.is_leaf():
         # This node is a leaf.
         node.parent.children = []
+        sizes.append(calc_size(root))
         accuracy.append(calc_accuracy(root, dataset))
 
     for child in node.children:
-        post_pruning(root, child, dataset, accuarcy)
+        post_pruning(root, child, dataset, accuracy, sizes)
+
+def calc_size(node):
+    """
+    Calculate the number of nodes for a given node (number of descendants
+    including itself).
+    """
+    if node.is_leaf():
+        return 1
+
+    childs = node.children
+    return calc_size(childs[0]) + calc_size(childs[1])
