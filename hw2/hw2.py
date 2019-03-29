@@ -48,7 +48,6 @@ def calc_entropy(data):
 
         entropy -= (p * np.log2(p))
 
-    # print('final entropy: ', entropy)
     return entropy
 
 class DecisionNode:
@@ -319,20 +318,38 @@ def split_by_threshold(data, attr_idx, threshold):
 
     return np.array(d1), np.array(d2)
 
-def post_pruning(root, node, dataset, accuracy, sizes):
+def post_pruning(root, node, data, accuracies, sizes):
     """
     Preform post pruning on given decision node.
     Calculates accuracy of the tree assuming no split occurred on the
     parent of that leaf and find the best such parent.
+
+    Input: root node, current node, data dictionary composed of
+    'test' and 'train' datasets and accuracies dictionary holding
+    accuracies measurements for both testing and training.
     """
     if node.is_leaf():
-        # This node is a leaf.
-        node.parent.children = []
-        sizes.append(calc_size(root))
-        accuracy.append(calc_accuracy(root, dataset))
+        current_ac = calc_accuracy(root, data['test'])
+        children = np.copy(node.parent.children)
+
+        if node.parent is not None:
+            node.parent.children = []
+
+        pruned_ac = calc_accuracy(root, data['test'])
+
+        # Only insert improved accuracy into results.
+        if (pruned_ac >= current_ac):
+            sizes.append(calc_size(root))
+            accuracies['test'].append(pruned_ac)
+            accuracies['train'].append(calc_accuracy(root, data['train']))
+
+        else:
+            # Otherwise, restore children of parent
+            node.parent.children = children
+        return
 
     for child in node.children:
-        post_pruning(root, child, dataset, accuracy, sizes)
+        post_pruning(root, child, data, accuracies, sizes)
 
 def calc_size(node):
     """
