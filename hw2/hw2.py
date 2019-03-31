@@ -226,7 +226,7 @@ def calc_accuracy(node, dataset):
     return (good_predictions / dataset.shape[0]) * 100
 
 
-def print_tree(node):
+def print_tree(node, indent=''):
     '''
     prints the tree according to the example in the notebook
 
@@ -235,16 +235,13 @@ def print_tree(node):
 
     This function has no return value
     '''
-    print_tree_rec(node, '')
-
-def print_tree_rec(node, indent):
     if node.is_leaf():
         print('{0}leaf: [{1}]'.format(indent, node.summary[0]))
         return # We're done
 
     print('{0}[X{1} <= {2}],'.format(indent, node.feature, node.value))
-    print_tree_rec(node.children[0], indent + '  ')
-    print_tree_rec(node.children[1], indent + '  ')
+    print_tree(node.children[0], indent + '  ')
+    print_tree(node.children[1], indent + '  ')
 
 def count_labels(data):
     """
