@@ -315,38 +315,76 @@ def split_by_threshold(data, attr_idx, threshold):
 
     return np.array(d1), np.array(d2)
 
-def post_pruning(root, node, data, accuracies, sizes):
+def post_pruning(root, train_data, test_data):
     """
-    Preform post pruning on given decision node.
+    Preforms post pruning on the given root node.
     Calculates accuracy of the tree assuming no split occurred on the
-    parent of that leaf and find the best such parent.
+    parent of each leaf, and find the best such parent.
+    """
+    accuracies = {
+        # Set the starting accuracies for reference.
+        'train': [calc_accuracy(root, train_data)],
+        'test': [calc_accuracy(root, test_data)]
+    }
+
+    data = {
+        'train': train_data,
+        'test': test_data
+    }
+
+    # Defines the number of nodes corresponding to calculated accuracy.
+    node_sizes = [calc_size(root)]
+
+    # We start with the root node as our pruned node over iterations.
+    node = root
+
+    while not root.is_leaf():
+        # Defines the current leaves set on which we compare pruning by
+        # DecisionNode as our key and the calculated accuracy as the value
+        leaves = {}
+
+        # We'll calculate the best parent to prune, by checking
+        # the accuray of each pruned tree without it's potential
+        # pruned children.
+        prune_leaves(root, node, data, leaves)
+        best = max(leaves.keys(), key=lambda k: leaves[k])
+
+        # Save results for the testing accuracies (on which the
+        # pruned is preformed) and for the training data accuray
+        # without the selected parent's children.
+        best.children = []
+        node_sizes.append(calc_size(root))
+        accuracies['test'].append(leaves[best])
+        accuracies['train'].append(calc_accuracy(root, data['train']))
+
+    return accuracies, node_sizes
+
+def prune_leaves(root, node, data, leaves):
+    """
+    Preform post pruning on given decision node by pruning just on the
+    leaves nodes.
 
     Input: root node, current node, data dictionary composed of
-    'test' and 'train' datasets and accuracies dictionary holding
-    accuracies measurements for both testing and training.
+    'test' and 'train' datasets and a leaves dicitonary representing
+    a leaf node as key and the calculated accuray by deleteing itself
+    and it's sibling node (making the parent a leaf).
     """
     if node.is_leaf():
-        current_ac = calc_accuracy(root, data['test'])
+        # We want to calculate the accuarcy without this leaf
+        # (and it's sibling leaf as well).
         children = np.copy(node.parent.children)
 
         if node.parent is not None:
             node.parent.children = []
 
-        pruned_ac = calc_accuracy(root, data['test'])
+        leaves[node.parent] = calc_accuracy(root, data['test'])
 
-        # Only insert improved accuracy into results.
-        if (pruned_ac >= current_ac):
-            sizes.append(calc_size(root))
-            accuracies['test'].append(pruned_ac)
-            accuracies['train'].append(calc_accuracy(root, data['train']))
-
-        else:
-            # Otherwise, restore children of parent
-            node.parent.children = children
+        # We're done with the current leaf. Restore it's children.
+        node.parent.children = children
         return
 
     for child in node.children:
-        post_pruning(root, child, data, accuracies, sizes)
+        prune_leaves(root, child, data, leaves)
 
 def calc_size(node):
     """
