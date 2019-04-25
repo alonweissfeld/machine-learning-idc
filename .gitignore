@@ -104,3 +104,10 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# Datasets
+data/
+
+# Theory questions files
+*.pdf
+*.pages
