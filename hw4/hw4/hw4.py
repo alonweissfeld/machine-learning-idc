@@ -51,7 +51,7 @@ def plot_pred_vs_actual(df):
 
 def get_num_of_gaussians():
     # Guess the number of Gaussians, in our specific case.
-    k = 5
+    k = 4
     return k
 
 
@@ -61,10 +61,13 @@ def init(points_list, k):
     :param k: number of gaussians. type: integer.
     :return the initial guess of w, mu, sigma. types: array
     """
-    # Guess initial value with dependency on the given number of Gausisands.
-    w = np.array([1 / k for i in range(k)])
-    mu = np.random.random(k)
-    sigma = np.random.random(k)
+    # Guess initial value with dependency on the given data
+    # and the given number of Gausisans.
+    max_val = max(points_list)
+
+    w = np.array([1 / float(k) for i in range(k)])
+    mu = np.random.random(k) * max_val
+    sigma = np.random.random(k) * (max_val / k) + 1
 
     return w, mu, sigma
 
@@ -83,10 +86,6 @@ def expectation(points_list, mu, sigma, w):
     a = 1 / (sigma * np.sqrt(2 * np.pi))
     b = np.exp((-1 * np.square(points_list.T - mu)) / (2 * np.square(sigma)))
     likelihood = w * a * b
-
-    # Defensive - add almost zero values instead of zeros for
-    # any arithmetical operations (such as division).
-    likelihood[likelihood == 0.0] = 1e-10
 
     return likelihood
 
@@ -169,6 +168,11 @@ def expectation_maximization(points_list, k, max_iter, epsilon):
         likelihood = expectation(points_list, mu, sigma, w)
 
         likelihood_sum = likelihood.sum(axis=1)
+
+        # Defensive - add almost zero values instead of zeros for
+        # any arithmetical operations (such as division).
+        likelihood_sum[likelihood_sum == 0.0] = 1e-10
+
         log_likelihood.append(np.sum(np.log(likelihood_sum), axis=0))
 
         # M step
