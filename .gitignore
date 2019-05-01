@@ -107,6 +107,7 @@ venv.bak/
 
 # Datasets
 data/
+*.csv
 
 # Theory questions files
 *.pdf
