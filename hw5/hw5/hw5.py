@@ -122,13 +122,34 @@ def compare_svms(data_array,
     svm_df['fpr'] = None
     svm_df['accuracy'] = None
 
-    ###########################################################################
-    # TODO: Implement the function                                            #
-    ###########################################################################
-    pass
-    ###########################################################################
-    #                             END OF YOUR CODE                            #
-    ###########################################################################
+    # Helper arrays to hold the different k-fold stats results.
+    tpr = []
+    fpr = []
+    accuracy = []
+
+    partition_data = array_split(data_array, folds_count)
+    partition_labels = array_split(labels_array, folds_count)
+
+    # Iterate each kernel and generate a learner.
+    for idx, kernel in enumerate(kernels_list):
+        clf = SVC(
+            C=kernel_params[idx].get('C') or SVM_DEFAULT_C,
+            kernel=kernel,
+            degree=kernel_params[idx].get('degree') or SVM_DEFAULT_DEGREE,
+            gamma=kernel_params[idx].get('gamma') or SVM_DEFAULT_GAMMA,
+        )
+
+        _tpr, _fpr, _acc = get_k_fold_stats(partition_data, partition_labels, clf)
+
+        # Append the current k-fold stats.
+        tpr.append(_tpr)
+        fpr.append(_fpr)
+        accuracy.append(_acc)
+
+    # We're done.
+    svm_df['tpr'] = tpr
+    svm_df['fpr'] = fpr
+    svm_df['accuracy'] = accuracy
 
     return svm_df
 
