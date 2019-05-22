@@ -154,20 +154,17 @@ def compare_svms(data_array,
     return svm_df
 
 
-def get_most_accurate_kernel():
+def get_most_accurate_kernel(res):
     """
     :return: integer representing the row number of the most accurate kernel
     """
-    best_kernel = 0
-    return best_kernel
+    return get_argmax(res.get('accuracy'))
 
-
-def get_kernel_with_highest_score():
+def get_kernel_with_highest_score(res):
     """
     :return: integer representing the row number of the kernel with the highest score
     """
-    best_kernel = 0
-    return best_kernel
+    return get_argmax(res.get('score'))
 
 
 def plot_roc_curve_with_score(df, alpha_slope=1.5):
@@ -238,3 +235,17 @@ def get_test_set_performance(train_data, train_labels, test_data, test_labels):
     ###########################################################################
 
     return kernel_type, kernel_params, clf, tpr, fpr, accuracy
+
+def get_argmax(items):
+    """
+    Helper method to return the index of the highet value with a given ndarray.
+    """
+    maximum = 0.0
+    max_idx = 0
+
+    for idx, val in enumerate(items):
+        if val > maximum:
+            max_idx = idx
+            maximum = val
+
+    return max_idx
