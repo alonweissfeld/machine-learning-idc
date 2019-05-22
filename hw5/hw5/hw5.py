@@ -31,13 +31,13 @@ def prepare_data(data, labels, max_count=None, train_ratio=0.8):
     full_data = permutation(full_data)
 
     # Split the data into train and test set by the given ratio.
-    length = len(data)
-    parts = array_split(full_data, train_ratio * length)
+    limit = int(train_ratio * len(full_data))
+    train, test = full_data[:limit], full_data[limit:]
 
-    train_data = parts[0][:,:-1]
-    train_labels = parts[0][:,-1]
-    test_data = parts[1][:,:-1]
-    test_labels = parts[1][:,-1]
+    train_data = train[:,:-1]
+    train_labels = train[:,-1]
+    test_data = test[:,:-1]
+    test_labels = test[:,-1]
 
     return train_data, train_labels, test_data, test_labels
 
@@ -51,17 +51,21 @@ def get_stats(prediction, labels):
              accuracy: accuracy of the model given the predictions
     """
 
-    tpr = 0.0
-    fpr = 0.0
-    accuracy = 0.0
+    length = len(labels)
+    positives = labels.sum()
+    negativies = length - positives
 
-    ###########################################################################
-    # TODO: Implement the function                                            #
-    ###########################################################################
-    pass
-    ###########################################################################
-    #                             END OF YOUR CODE                            #
-    ###########################################################################
+    # True classified positives / total true positives
+    tp = logical_and(prediction, labels).sum()
+    tpr = tp / positives
+
+    # Falsy true classification/ total true negativies.
+    fpr = array([prediction[i] and not labels[i] for i in range(length)]).sum()
+    fpr /= negativies
+
+    # True negative count
+    tn = array([not prediction[i] and not labels[i] for i in range(length)]).sum()
+    accuracy = (tp + tn) / length
 
     return tpr, fpr, accuracy
 
@@ -77,13 +81,23 @@ def get_k_fold_stats(folds_array, labels_array, clf):
     fpr = []
     accuracy = []
 
-    ###########################################################################
-    # TODO: Implement the function                                            #
-    ###########################################################################
-    pass
-    ###########################################################################
-    #                             END OF YOUR CODE                            #
-    ###########################################################################
+    # Iterate each element in the k-folds array. Each iteration
+    # the current elemnt is the testing element and the rest are
+    # the training instances.
+    for idx, test_el in enumerate(folds_array):
+        # Cut the testing element out of the k-folds array.
+        train = concatenate((folds_array[:idx] + folds_array[idx+1:]))
+        labels = concatenate((labels_array[:idx] + labels_array[idx+1:]))
+
+        clf.fit(train, labels) # Fit the SVM model.
+        prediction = clf.predict(test_el) # Predict.
+
+        # Evaluate current classifier preformance.
+        _tpr, _fpr, _ac = get_stats(prediction, labels_array[idx])
+
+        tpr.append(_tpr)
+        fpr.append(_fpr)
+        accuracy.append(_ac)
 
     return mean(tpr), mean(fpr), mean(accuracy)
 
