@@ -26,18 +26,18 @@ def prepare_data(data, labels, max_count=None, train_ratio=0.8):
         data = data[:max_count]
         labels = labels[:max_count]
 
-    train_data = array([])
-    train_labels = array([])
-    test_data = array([])
-    test_labels = array([])
+    # Combine data with labels in order to shuffle it.
+    full_data = concatenate((data, array([labels]).T), axis=1)
+    full_data = permutation(full_data)
 
-    ###########################################################################
-    # TODO: Implement the function                                            #
-    ###########################################################################
-    pass
-    ###########################################################################
-    #                             END OF YOUR CODE                            #
-    ###########################################################################
+    # Split the data into train and test set by the given ratio.
+    length = len(data)
+    parts = array_split(full_data, train_ratio * length)
+
+    train_data = parts[0][:,:-1]
+    train_labels = parts[0][:,-1]
+    test_data = parts[1][:,:-1]
+    test_labels = parts[1][:,-1]
 
     return train_data, train_labels, test_data, test_labels
 
