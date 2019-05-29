@@ -16,33 +16,25 @@ def main(vectors_amount=20000, dimension=20):
     # 4.a. Draw random vectors.
     vectors = np.random.randn(vectors_amount, dimension)
 
-    # Initiate a zeros matrix.
-    gram_matrix = init_matrix(vectors_amount)
-
     # 4.b. Calculate a Gram matrix, i.e., each cell i,j in the matrix is the
     # result of applying the kernel function on the vectors i and j.
     # Also, measure the time for this process.
     start = time.time()
-
-    for i in range(vectors_amount):
-        for j in range(vectors_amount):
-            gram_matrix[i][j] = kernel(vectors[i], vectors[j])
+    gram_matrix = kernel_matrix(vectors)
 
     # We're done calculating matrix.
     kernel_time = time.time() - start
 
-    # Use phi to map the vectors to the higher dimension.
-
-    # Initiate a zeros matrix.
-    phi_matrix = init_matrix(vectors_amount)
-
-    # 4.d. + 4.e. Calculate the matrix where each cell i,j is the result
-    # of the dot product of the mapping images of the vectors i and j.
-    # Also here, measure the time for this process.
+    # Start measuring time to analyze the Phi Mapping process duration.
     start = time.time()
-    for i in range(vectors_amount):
-        for j in range(vectors_amount):
-            phi_matrix[i][j] = np.inner(phi(vectors[i]), phi(vectors[j]))
+
+    # 4.d. Use Phi to map the vectors to the higher dimension.
+    # See phi method for details.
+    phi_vectors = np.array([phi(vector) for vector in vectors])
+
+    # 4.e. Calculate the matrix where each cell i,j is the result
+    # of the dot product of the mapping images of the vectors i and j.
+    phi_matrix = np.matmul(phi_vectors, phi_vectors.T)
 
     # We're done calculating matrix.
     phi_time = time.time() - start
@@ -55,8 +47,8 @@ def main(vectors_amount=20000, dimension=20):
     # 4.g. Compare the time it took the machine to calculate the two matrices.
     kernel_dt = str(datetime.timedelta(seconds=kernel_time))
     phi_dt = str(datetime.timedelta(seconds=phi_time))
-    print('Matrix generation by Kernel: ', kernel_dt)
-    print('Matrix generation by Phi Mapping: ', phi_dt)
+    print('Matrix generation by Kernel: ' + kernel_dt)
+    print('Matrix generation by Phi Mapping: ' + phi_dt)
 
     if kernel_time < phi_time:
         percent = (kernel_time / phi_time) * 100
@@ -68,11 +60,12 @@ def main(vectors_amount=20000, dimension=20):
     # by the Phi Mapping in higher dimensions. This corresponds to what
     # we saw in class and fits the principle of the Kernel "trick".
 
-def kernel(x, y):
+def kernel_matrix(vectors):
     """
-    Defines the kernel function: K(x,y) = (x * y + 1) ^ 2
+    Generates a Gram Matrix for the given vectors set, by the following
+    kernel function: K(x,y) = (x * y + 1) ^ 2
     """
-    return np.power((np.inner(x, y) + 1), 2)
+    return np.power(np.matmul(vectors, vectors.T) + 1, 2)
 
 def init_matrix(size):
     """
