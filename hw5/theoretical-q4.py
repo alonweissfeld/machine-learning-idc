@@ -25,11 +25,10 @@ def main(vectors_amount=20000, dimension=20):
     # We're done calculating matrix.
     kernel_time = time.time() - start
 
-    # Start measuring time to analyze the Phi Mapping process duration.
+    # 4.d. Use Phi to map the vectors to the higher dimension. See the
+    # 'phi' method for details. Also, start measuring the time to
+    # analyze the Phi mapping process duration.
     start = time.time()
-
-    # 4.d. Use Phi to map the vectors to the higher dimension.
-    # See phi method for details.
     phi_vectors = np.array([phi(vector) for vector in vectors])
 
     # 4.e. Calculate the matrix where each cell i,j is the result
@@ -65,13 +64,7 @@ def kernel_matrix(vectors):
     Generates a Gram Matrix for the given vectors set, by the following
     kernel function: K(x,y) = (x * y + 1) ^ 2
     """
-    return np.power(np.matmul(vectors, vectors.T) + 1, 2)
-
-def init_matrix(size):
-    """
-    Returns a size x size zeros matrix.
-    """
-    return np.zeros(shape=(size, size))
+    return (np.matmul(vectors, vectors.T) + 1) ** 2
 
 def phi(x):
     """
