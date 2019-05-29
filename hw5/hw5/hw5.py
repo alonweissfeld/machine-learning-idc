@@ -173,19 +173,27 @@ def plot_roc_curve_with_score(df, alpha_slope=1.5):
     :param alpha_slope: alpha parameter for plotting the linear score line
     :return:
     """
+    df = df.sort_values(by=['fpr'])
     x = df.fpr.tolist()
     y = df.tpr.tolist()
 
-    ###########################################################################
-    # TODO: Implement the function                                            #
-    ###########################################################################
-    pass
-    ###########################################################################
-    #                             END OF YOUR CODE                            #
-    ###########################################################################
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('ROC Plot')
 
+    plt.xlim([0, 1.5])
+    plt.ylim([0, 1.5])
 
-def evaluate_c_param(data_array, labels_array, folds_count):
+    kernel_idx = get_kernel_with_highest_score(df)
+    b = -1 * alpha_slope * x[kernel_idx] + y[kernel_idx]
+    linear_equation = poly1d([alpha_slope, b])
+
+    plt.plot(x, y)
+    plt.scatter(x, y)
+    plt.plot([0,1], linear_equation([0,1]))
+    plt.show()
+
+def evaluate_c_param(data_array, labels_array, folds_count, best_kernel_params):
     """
     :param data_array: a numpy array with the features dataset
     :param labels_array: a numpy array with the labels
@@ -194,17 +202,26 @@ def evaluate_c_param(data_array, labels_array, folds_count):
     """
 
     res = pd.DataFrame()
-    ###########################################################################
-    # TODO: Implement the function                                            #
-    ###########################################################################
-    pass
-    ###########################################################################
-    #                             END OF YOUR CODE                            #
-    ###########################################################################
+
+    i_values = [1, 0, -1, -2, -3, -4]
+    j_values = [3, 2, 1]
+
+    params = []
+    kernels = [best_kernel_params.get('type')] * len(i_values) * len(j_values)
+    del best_kernel_params['type']
+
+    for i in i_values:
+        for j in j_values:
+            temp = best_kernel_params.copy()
+            temp['C'] = (10 ** i) * (j / 3.0)
+
+            params.append(temp)
+
+    res = compare_svms(data_array, labels_array, folds_count, kernels, params)
     return res
 
 
-def get_test_set_performance(train_data, train_labels, test_data, test_labels):
+def get_test_set_performance(train_data, train_labels, test_data, test_labels, kernel_params):
     """
     :param train_data: a numpy array with the features dataset - train
     :param train_labels: a numpy array with the labels - train
@@ -219,20 +236,17 @@ def get_test_set_performance(train_data, train_labels, test_data, test_labels):
              accuracy: accuracy of the model on the test dataset
     """
 
-    kernel_type = ''
-    kernel_params = None
-    clf = SVC(class_weight='balanced')  # TODO: set the right kernel
+    kernel_type = kernel_params.get('type')
+    del kernel_params['type']
+    clf = SVC(class_weight='balanced', gamma='auto')
+    clf.set_params(**kernel_params)
     tpr = 0.0
     fpr = 0.0
     accuracy = 0.0
 
-    ###########################################################################
-    # TODO: Implement the function                                            #
-    ###########################################################################
-    pass
-    ###########################################################################
-    #                             END OF YOUR CODE                            #
-    ###########################################################################
+    clf.fit(train_data, train_labels)
+    prediction = clf.predict(test_data)
+    tpr, fpr, accuracy = get_stats(prediction, test_labels)
 
     return kernel_type, kernel_params, clf, tpr, fpr, accuracy
 
